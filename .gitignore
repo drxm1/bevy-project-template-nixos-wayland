@@ -1,1 +1,16 @@
+# Rust
 /target
+**/*.rs.bk
+Cargo.lock
+
+# Nix
+result
+.direnv
+
+# Editor-specific for people using these
+.vscode
+.idea
+
+# OS-specific for people using these
+.DS_Store
+Thumbs.db

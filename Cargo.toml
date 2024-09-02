@@ -1,12 +1,16 @@
 [package]
-name = "my_bevy_game"
-version = "0.1.0"
+name = "bevy-template"
+version = "0.14.0"
 edition = "2021"
 
-#[workspace]
-resolver = "2" # wgpu/bevy need this
+[dependencies]
+bevy = { version = "0.14.0", features = ["dynamic_linking", "wayland"] }
+log = { version = "*", features = ["max_level_debug", "release_max_level_warn"] }
 
-# Enable a small amount of optimization in debug mode
+[features]
+default = ["bevy/dynamic_linking", "bevy/wayland"]
+nightly = ["bevy/dynamic_linking", "bevy/wayland"] # Remove dynamic_linking when shipping!
+
 [profile.dev]
 opt-level = 1
 
@@ -14,6 +18,21 @@ opt-level = 1
 [profile.dev.package."*"]
 opt-level = 3
 
-[dependencies]
-bevy = { version = "0.13.2", features = ["dynamic_linking", "wayland"] }
+[profile.release]
+codegen-units = 1
+lto = "thin"
 
+[profile.wasm-release]
+inherits = "release"
+opt-level = "s"
+lto = "thin"
+strip = "debuginfo"
+
+[workspace]
+resolver = "2" # wgpu/bevy need this
+
+[package.metadata.rust-analyzer]
+rustc_private = true
+
+[unstable]
+codegen-backend = true
