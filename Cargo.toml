@@ -1,20 +1,21 @@
-[package]
-name = "bevy-template"
+[workspace]
+members = [
+    "app-bevy",
+    "lib-utils",
+]
+resolver = "2" # wgpu/bevy need this
+
+[workspace.package]
 version = "0.14.0"
 edition = "2021"
 
-[dependencies]
+[workspace.dependencies]
 bevy = { version = "0.14.0", features = ["dynamic_linking", "wayland"] }
 log = { version = "*", features = ["max_level_debug", "release_max_level_warn"] }
-
-[features]
-default = ["bevy/dynamic_linking", "bevy/wayland"]
-nightly = ["bevy/dynamic_linking", "bevy/wayland"] # Remove dynamic_linking when shipping!
 
 [profile.dev]
 opt-level = 1
 
-# Enable high optimizations for dependencies (incl. bevy), but not for our code:
 [profile.dev.package."*"]
 opt-level = 3
 
@@ -28,11 +29,5 @@ opt-level = "s"
 lto = "thin"
 strip = "debuginfo"
 
-[workspace]
-resolver = "2" # wgpu/bevy need this
-
-[package.metadata.rust-analyzer]
+[workspace.metadata.rust-analyzer]
 rustc_private = true
-
-[unstable]
-codegen-backend = true

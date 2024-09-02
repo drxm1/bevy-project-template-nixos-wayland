@@ -1,0 +1,19 @@
+[package]
+name = "app-bevy"
+version = { workspace = true }
+edition = { workspace = true }
+
+[dependencies]
+bevy = { workspace = true }
+log = { workspace = true }
+lib-utils = { path = "../lib-utils" }
+
+[features]
+default = ["bevy/dynamic_linking", "bevy/wayland"]
+nightly = ["bevy/dynamic_linking", "bevy/wayland"] # Remove dynamic_linking when shipping!
+
+[package.metadata.rust-analyzer]
+rustc_private = true
+
+[unstable]
+codegen-backend = true

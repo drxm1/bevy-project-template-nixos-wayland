@@ -1,5 +1,7 @@
 # Rust
 /target
+app-bevy/target
+lib-utils/target
 **/*.rs.bk
 Cargo.lock
 
@@ -7,10 +9,37 @@ Cargo.lock
 result
 .direnv
 
-# Editor-specific for people using these
-.vscode
-.idea
+# Editor-Specific
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# OS-specific for people using these
+# OS
 .DS_Store
 Thumbs.db
+
+# Bevy
+/assets
+app-bevy/assets
+lib-utils/assets
+
+# Misc
+.idea
+tmp/
+
+# Logs
+*.log
+
+# Build artifacts
+*.o
+*.so
+*.dylib
+*.dll
+*.wasm
+*.pyc
+node_modules/
+
+# Backup Files
+*~
+

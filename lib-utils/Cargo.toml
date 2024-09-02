@@ -1,0 +1,8 @@
+[package]
+name = "lib-utils"
+version = { workspace = true }
+edition = { workspace = true }
+
+[dependencies]
+bevy = { workspace = true }
+log = { workspace = true }
