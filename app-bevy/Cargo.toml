@@ -9,11 +9,9 @@ log = { workspace = true }
 lib-utils = { path = "../lib-utils" }
 
 [features]
-default = ["bevy/dynamic_linking", "bevy/wayland"]
-nightly = ["bevy/dynamic_linking", "bevy/wayland"] # Remove dynamic_linking when shipping!
-
-[package.metadata.rust-analyzer]
-rustc_private = true
-
-[unstable]
-codegen-backend = true
+default = []
+# Opt-in fast dev iteration: compile Bevy as a shared library so only your own code
+# relinks between runs. Enabled by `cargo dev` (alias in .cargo/config.toml).
+# Keep it OUT of release builds — a dynamically linked binary needs libbevy_dylib at
+# runtime and is incompatible with LTO.
+dev = ["bevy/dynamic_linking"]

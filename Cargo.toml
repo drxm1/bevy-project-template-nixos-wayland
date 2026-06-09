@@ -3,31 +3,36 @@ members = [
     "app-bevy",
     "lib-utils",
 ]
-resolver = "2" # wgpu/bevy need this
+resolver = "2" # required for the feature resolver Bevy/wgpu expect
 
 [workspace.package]
-version = "0.14.0"
+version = "0.1.0"
 edition = "2021"
 
 [workspace.dependencies]
-bevy = { version = "0.14.0", features = ["dynamic_linking", "wayland"] }
-log = { version = "*", features = ["max_level_debug", "release_max_level_warn"] }
+# dynamic_linking is intentionally NOT here — it is an opt-in `dev` feature on
+# app-bevy so it never leaks into release builds. See app-bevy/Cargo.toml.
+bevy = { version = "0.15", features = ["wayland"] }
+log = { version = "0.4", features = ["max_level_debug", "release_max_level_warn"] }
 
+# Faster dev builds without slowing the engine to a crawl: your own code at opt-level
+# 1 (quick to recompile), dependencies (incl. Bevy) at opt-level 3 (near-release speed
+# while you iterate). This pairs with dynamic_linking + a fast linker + Cranelift.
 [profile.dev]
 opt-level = 1
 
 [profile.dev.package."*"]
 opt-level = 3
 
+# Release: self-contained, optimized binary.
 [profile.release]
 codegen-units = 1
 lto = "thin"
 
+# For `wasm32-unknown-unknown` web builds (size-optimized). Build with
+# `cargo build --profile wasm-release`.
 [profile.wasm-release]
 inherits = "release"
 opt-level = "s"
 lto = "thin"
 strip = "debuginfo"
-
-[workspace.metadata.rust-analyzer]
-rustc_private = true

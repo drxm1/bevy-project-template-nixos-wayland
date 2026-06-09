@@ -3,7 +3,8 @@
 app-bevy/target
 lib-utils/target
 **/*.rs.bk
-Cargo.lock
+# Cargo.lock IS committed — this is a binary/app template, so a pinned lockfile gives
+# everyone who clones it a reproducible build.
 
 # Nix
 result
