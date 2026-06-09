@@ -1,3 +1,19 @@
+# Single source of truth for the Rust toolchain: read by both cargo/rust-analyzer
+# AND the Nix flake (via rust-bin.fromRustupToolchainFile), so they can never drift.
+#
+# Pinned nightly because this template opts into the fastest dev iteration:
+#   - cranelift codegen backend for dev builds (see .cargo/config.toml)
+#   - -Zshare-generics=y
+# Both are nightly-only. The date is pinned (reproducible) and verified to ship the
+# cranelift component. To move forward: pick a newer nightly date whose manifest still
+# contains `rustc-codegen-cranelift-preview`, update it here, then `nix flake update`.
 [toolchain]
-channel = "nightly"
-components = ["rustfmt", "clippy"]
+channel = "nightly-2026-06-08"
+components = [
+  "rust-src",
+  "rust-analyzer",
+  "clippy",
+  "rustfmt",
+  "rustc-codegen-cranelift-preview",
+]
+profile = "minimal"

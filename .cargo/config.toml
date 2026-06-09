@@ -1,22 +1,45 @@
+# cargo resolves extra rustflags from EXACTLY ONE source — first match wins, arrays
+# never merge across sources — in this order:
+#   1. CARGO_ENCODED_RUSTFLAGS env   2. RUSTFLAGS env
+#   3. target.<triple>.rustflags     4. build.rustflags
+# So every rustflag lives in the target table below: the flake must NOT export
+# RUSTFLAGS (it would shadow this whole file), and there is deliberately NO [build]
+# rustflags table (target.<triple> would win over it anyway and the two never merge).
+# This is exactly the bug that used to silently disable share-generics and -lxkbcommon.
+
 [target.x86_64-unknown-linux-gnu]
-linker = "clang"
+linker = "clang"                          # driver; the real linker is mold (below)
 rustflags = [
-    "-C", "link-arg=-fuse-ld=lld",
-    "-C", "link-arg=-lxkbcommon",
+    "-C", "link-arg=-fuse-ld=mold",       # fast linker, provided by the Nix devShell
+    "-C", "link-arg=-lxkbcommon",         # NixOS/Wayland: link libxkbcommon explicitly
+    "-Z", "share-generics=y",             # nightly: reuse generic instantiations
 ]
 
 [target.x86_64-pc-windows-msvc]
 linker = "rust-lld.exe"
+# dynamic_linking + share-generics can blow past the PE/DLL export limit on Windows.
+rustflags = ["-Z", "share-generics=off"]
 
 [target.x86_64-apple-darwin]
-rustflags = ["-C", "link-arg=-fuse-ld=/usr/local/opt/llvm/bin/ld64.lld"]
-
-# [unstable]
-# codegen-backend = true
-# [profile.dev]
-# codegen-backend = "cranelift"
-# [profile.dev.package."*"]
-# codegen-backend = "llvm"
-
-[build]
+# macOS's default linker is already fast; just keep share-generics on nightly.
 rustflags = ["-Z", "share-generics=y"]
+
+# --- Cranelift codegen backend (nightly). This is NOT a rustflag; it is configured
+#     here and is immune to the precedence chain above. ---
+[unstable]
+codegen-backend = true
+
+[profile.dev]
+# Your own crates (app-bevy, lib-utils): Cranelift gives much faster debug codegen.
+codegen-backend = "cranelift"
+
+[profile.dev.package."*"]
+# Every dependency (incl. Bevy) and all build scripts / proc-macros: keep LLVM, so the
+# engine still runs fast in dev and nothing trips over the Cranelift preview.
+codegen-backend = "llvm"
+
+# `cargo dev` == fast iteration with Bevy dynamic linking turned on (app-bevy `dev`
+# feature). Plain `cargo build --release` stays self-contained: no dynamic_linking,
+# LLVM, thin LTO.
+[alias]
+dev = "run -p app-bevy --features dev"
