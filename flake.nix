@@ -1,5 +1,5 @@
 {
-  description = "Self-contained Bevy 0.17 dev environment for NixOS + Wayland";
+  description = "Self-contained Bevy 0.18 dev environment for NixOS + Wayland";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -56,7 +56,7 @@
             # with no merging), silently dropping the linker and -Zshare-generics flags.
             # All rustflags live in .cargo/config.toml instead.
 
-            echo "Bevy 0.17 dev environment (NixOS/Wayland) ready."
+            echo "Bevy 0.18 dev environment (NixOS/Wayland) ready."
           '';
         };
       });
