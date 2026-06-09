@@ -12,7 +12,7 @@ edition = "2021"
 [workspace.dependencies]
 # dynamic_linking is intentionally NOT here — it is an opt-in `dev` feature on
 # app-bevy so it never leaks into release builds. See app-bevy/Cargo.toml.
-bevy = { version = "0.16", features = ["wayland"] }
+bevy = { version = "0.17", features = ["wayland"] }
 log = { version = "0.4", features = ["max_level_debug", "release_max_level_warn"] }
 
 # Faster dev builds without slowing the engine to a crawl: your own code at opt-level
