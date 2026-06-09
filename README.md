@@ -1,105 +1,143 @@
-# 🎮 Bevy Starter Template for NixOS
+# Bevy starter template for NixOS + Wayland
 
-A streamlined template for Bevy game development on NixOS, leveraging direnv and Nix flakes for a seamless setup. Multi-crate structure for better code organization.
+A small, reproducible [Bevy](https://bevy.org) project skeleton for game development
+on NixOS under Wayland. Everything needed to build and run is pinned in a Nix flake,
+so there is nothing to install system-wide and a fresh clone builds the same on any
+machine. The default settings are tuned for fast iteration.
 
-## 🌟 Features
-- **Multi-Crate Structure**: Separate `app-bevy` and `lib-utils` crates for better organization
-- **Optimized Compilation**: Fast linking with LLD
-- **Nightly Rust**: Latest features
-- **Bevy Enhancements**: Dynamic linking and Wayland support
-- **Nix-Powered**: Consistent development environment
+- Bevy **0.15**
+- Self-contained Nix flake dev shell (Rust toolchain, system libraries, linker)
+- Fast compile times: Bevy dynamic linking, the `mold` linker, the Cranelift codegen
+  backend, generic sharing, and a split optimization profile
+- Cargo workspace: an `app-bevy` binary and a `lib-utils` library, to show how to
+  split a project across crates
 
-## 🚀 Quick Start
+## Prerequisites
+
+- [Nix](https://nixos.org/download) with flakes enabled
+  (`experimental-features = nix-command flakes`).
+- A working **Vulkan** driver on the host. On NixOS set `hardware.graphics.enable =
+  true`; the dev shell provides the Vulkan *loader* but cannot provide the GPU driver
+  (ICD) itself.
+- Optional: [direnv](https://direnv.net) to enter the dev shell automatically.
+
+## Quick start
 
 ```bash
 git clone https://github.com/drxm1/bevy-project-template-nixos-wayland.git
 cd bevy-project-template-nixos-wayland
-direnv allow
-cargo run -p app-bevy
+
+# Enter the dev shell (or run `direnv allow` once and it happens on cd):
+nix develop
+
+# Run with fast-iteration settings (Bevy dynamically linked):
+cargo dev          # alias for: cargo run -p app-bevy --features dev
 ```
 
-## 🛠 Project Structure
+You should see a window open and `hello ...` lines printed to the terminal every two
+seconds.
 
-- `Cargo.toml`: Workspace configuration
-- `app-bevy/`: Main Bevy application crate
-  - `Cargo.toml`: Bevy app manifest
-  - `src/main.rs`: Main application code
-- `lib-utils/`: Utility crate
-  - `Cargo.toml`: Utils crate manifest
-  - `src/lib.rs`: Utility functions and plugins
-- `.cargo/config.toml`: LLD linker configuration
-- `rust-toolchain.toml`: Nightly Rust specification
-- `flake.nix`: Nix development environment definition
-- `.envrc`: Direnv configuration for Nix flake
+## How the fast compile times work
 
-## 🧰 Development Environment
+Bevy is a large dependency, so the template trades a slower first build for much
+faster incremental rebuilds. Each piece is configured in one place and explained
+below.
 
-- **Nix Flakes**: Reproducible development setup
-- **Direnv**: Automatic environment loading
-- **Rust Nightly**: Latest features necessary with our build flags
+| Technique | Where | What it does |
+|---|---|---|
+| Dynamic linking | `app-bevy` `dev` feature → `cargo dev` | Compiles Bevy into a shared library once; afterwards only your code is relinked. Opt-in, never in release. |
+| `mold` linker | `.cargo/config.toml` (`-fuse-ld=mold`) + flake | Links far faster than the default `ld`. Driven by `clang`. |
+| Cranelift backend | `.cargo/config.toml` (`[profile.dev] codegen-backend`) | Generates debug code for *your* crates much faster than LLVM. Dependencies stay on LLVM so the engine still runs fast in dev. Requires nightly. |
+| `-Z share-generics=y` | `.cargo/config.toml` rustflags | Reuses generic instantiations across crates instead of recompiling them. Requires nightly. |
+| Optimization split | `Cargo.toml` profiles | Your code at `opt-level = 1` (quick to recompile); dependencies at `opt-level = 3` (fast at runtime). |
 
-## 📝 Notes
+> One subtlety worth knowing: cargo reads extra `rustflags` from a single source
+> (first of `RUSTFLAGS` env, `target.*.rustflags`, `build.rustflags`) and never merges
+> them. That is why the dev shell does **not** export `RUSTFLAGS` and all flags live in
+> `.cargo/config.toml` — otherwise the linker and `share-generics` flags would be
+> silently dropped.
 
-- Requires Nix and direnv
-- `.direnv` is gitignored
-- Update `flake.lock` with `nix flake update` after `flake.nix` changes
+## Dev vs. release
 
-## 🚫 Limitations
+```bash
+# Fast iteration — dynamic linking + Cranelift. Binary needs libbevy_dylib at runtime.
+cargo dev
 
-- No WebGPU or web serving capabilities ensured right now, add that yourself
-- Designed for local development (well tested in emacs with direnv-mode)
+# Shippable build — self-contained, no dynamic linking, LLVM, thin LTO.
+cargo build --release -p app-bevy
+```
 
-## 🔧 Using This Template for Your Project
+Never ship a `--features dev` build: a dynamically linked binary depends on
+`libbevy_dylib.so` and is incompatible with LTO.
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/drxm1/bevy-project-template-nixos-wayland.git your-project-name
-   cd your-project-name
-   ```
-2. Remove the existing git history:
-   ```bash
-   rm -rf .git
-   ```
-3. Initialize a new git repository:
-   ```bash
-   git init
-   ```
-4. Update the project name in `Cargo.toml`, `app-bevy/Cargo.toml`, `lib-utils/Cargo.toml`, and `flake.nix`.
-5. Update this README.md with your project details.
-6. Create your initial commit:
-   ```bash
-   git add .
-   git commit -m "Initial commit: Bevy project setup from template"
-   ```
-7. Link to your new GitHub repository:
-   ```bash
-   git remote add origin https://github.com/yourusername/your-project-name.git
-   git branch -M main
-   git push -u origin main
-   ```
-8. Start developing your Bevy game!
-9. For the final release build:
-   - Refer to the [Bevy setup guide](https://bevyengine.org/learn/quick-start/getting-started/setup/) for optimal release configurations.
-   - Note that you'll likely need to build the final version without dynamic linking for better performance and portability.
-   - Update your `app-bevy/Cargo.toml` to remove the `dynamic_linking` feature for release builds:
-     ```toml
-     [dependencies]
-     bevy = { version = "0.14.0", features = ["wayland"] }
-     
-     [features]
-     default = ["bevy/wayland"]
-     dev = ["bevy/dynamic_linking"]
-     ```
-   - Build your release version with:
-     ```bash
-     cargo build --release --package app-bevy
-     ```
+## Project layout
 
-Remember to customize the `flake.nix` if you need additional dependencies for your specific project.
+```
+.
+├── flake.nix            # dev shell: Rust toolchain, system libs, linker, env
+├── rust-toolchain.toml  # pinned toolchain — read by BOTH Nix and cargo
+├── .cargo/config.toml   # linker, rustflags, Cranelift, the `cargo dev` alias
+├── Cargo.toml           # workspace: dependencies and build profiles
+├── Cargo.lock           # committed for reproducible builds
+├── app-bevy/            # the binary crate (main.rs)
+└── lib-utils/           # a library crate (a Bevy plugin)
+```
 
-## 📦 Working with Multiple Crates
+`cargo run -p app-bevy` (or `cargo run`) runs the app; `cargo test --workspace` tests
+everything; `cargo add <dep> -p lib-utils` adds a dependency to the library crate.
 
-- To run the main application: `cargo run -p app-bevy` or just `cargo run`
-- To run tests for all crates: `cargo test --workspace`
-- To add a new dependency to the utils crate: `cargo add <dependency> --package lib-utils`
-- Add more crates to the workspace by updating the root `Cargo.toml` file.
+## Toolchain
+
+`rust-toolchain.toml` is the single source of truth and is read by both cargo and the
+Nix flake (`rust-bin.fromRustupToolchainFile`), so they cannot drift apart. It pins a
+**nightly** because Cranelift and `share-generics` are nightly-only.
+
+To move to a newer nightly, change the date in `rust-toolchain.toml` to one whose
+manifest still contains `rustc-codegen-cranelift-preview`, then run `nix flake update`.
+
+Prefer stable? Set `channel = "stable"` (≥ 1.82, Bevy 0.15's minimum), remove
+`rustc-codegen-cranelift-preview` from the components, and remove the `[unstable]` /
+`codegen-backend` blocks and the `-Z share-generics` flag from `.cargo/config.toml`.
+You keep dynamic linking, `mold`, and the optimization split — the largest wins all
+work on stable.
+
+## NixOS / Wayland notes
+
+The dev shell adds the libraries Bevy `dlopen`s at runtime (`vulkan-loader`,
+`libxkbcommon`, `wayland`, `alsa-lib`, `udev`, plus the X11 libraries for the XWayland
+fallback) to `LD_LIBRARY_PATH`. This is scoped to the shell. winit selects Wayland
+automatically when `WAYLAND_DISPLAY` is set; force a backend with
+`WINIT_UNIX_BACKEND=wayland` (or `=x11`).
+
+Sanity-check the GPU before blaming the app — `vulkan-tools` is in the shell:
+
+```bash
+vulkaninfo --summary   # should list your GPU and a Vulkan version
+vkcube                 # should show a spinning cube
+```
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `libvulkan.so.1: cannot open shared object file` | loader not found | Provided by the dev shell; make sure you are inside `nix develop`. |
+| "Unable to find a GPU" / no suitable adapter | no usable Vulkan ICD (host-side) | `hardware.graphics.enable = true`; verify with `vulkaninfo`. |
+| `libxkbcommon.so.0` / winit panic on startup | xkbcommon missing | Provided by the dev shell (required even on pure Wayland). |
+| `vulkaninfo` warns about the `dzn`/`lvp` ICD | Mesa's software drivers being skipped | Harmless — the loader falls back to your real GPU driver. |
+| `cargo run` works but a packaged binary fails | `LD_LIBRARY_PATH` is not carried outside the shell | Ship via a real Nix derivation (e.g. crane/naersk) with the libraries as `buildInputs`, not via the dev env var. |
+
+## Using this template for your own project
+
+```bash
+# Start from a clean history:
+rm -rf .git && git init
+
+# Rename the crates in Cargo.toml, app-bevy/Cargo.toml, lib-utils/Cargo.toml,
+# and the description in flake.nix to match your project.
+
+git add . && git commit -m "Initial commit"
+git remote add origin https://github.com/you/your-game.git
+git push -u origin main
+```
+
+For distributing a real game build, package it as a Nix derivation rather than
+relying on the dev shell's `LD_LIBRARY_PATH` (see the table above), and build with
+`cargo build --release`.
