@@ -5,7 +5,7 @@ on NixOS under Wayland. Everything needed to build and run is pinned in a Nix fl
 so there is nothing to install system-wide and a fresh clone builds the same on any
 machine. The default settings are tuned for fast iteration.
 
-- Bevy **0.17**
+- Bevy **0.18**
 - Self-contained Nix flake dev shell (Rust toolchain, system libraries, linker)
 - Fast compile times: Bevy dynamic linking, the `mold` linker, the Cranelift codegen
   backend, generic sharing, and a split optimization profile
@@ -95,7 +95,7 @@ Nix flake (`rust-bin.fromRustupToolchainFile`), so they cannot drift apart. It p
 To move to a newer nightly, change the date in `rust-toolchain.toml` to one whose
 manifest still contains `rustc-codegen-cranelift-preview`, then run `nix flake update`.
 
-Prefer stable? Set `channel = "stable"` (≥ 1.88, Bevy 0.17's minimum), remove
+Prefer stable? Set `channel = "stable"` (≥ 1.89, Bevy 0.18's minimum), remove
 `rustc-codegen-cranelift-preview` from the components, and remove the `[unstable]` /
 `codegen-backend` blocks and the `-Z share-generics` flag from `.cargo/config.toml`.
 You keep dynamic linking, `mold`, and the optimization split — the largest wins all
