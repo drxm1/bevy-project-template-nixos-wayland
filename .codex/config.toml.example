@@ -1,0 +1,13 @@
+# Start Codex from the checkout root so direnv and Serena use this project.
+[mcp_servers.serena]
+command = "direnv"
+args = [
+  "exec", ".", "serena", "start-mcp-server",
+  "--context", "codex",
+  "--project-from-cwd",
+  "--agent-interface", "tools",
+  "--enable-web-dashboard", "false",
+  "--enable-gui-log-window", "false",
+]
+startup_timeout_sec = 240
+tool_timeout_sec = 120

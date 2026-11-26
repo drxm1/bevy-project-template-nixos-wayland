@@ -40,6 +40,26 @@ If your shell filters out info logs, run `RUST_LOG=app_bevy=info,lib_utils=info 
 `cargo dev` also enables Bevy's debug names, developer tools and asset hot reloading.
 Put game assets in `app-bevy/assets/`.
 
+## VS Code and Codex
+
+With the rust-analyzer extension installed, run `nix develop -c code .` to open
+VS Code with the pinned toolchain. The workspace runs Clippy and formats Rust on
+save. Editor checks use a separate target directory so you can keep running
+`cargo dev` while they build (change this if disk space is an issue).
+
+To use Serena with Codex, install `direnv` and put the `serena` executable on
+your PATH. [Serena installation guide](https://oraios.github.io/serena/02-usage/010_installation.html)
+
+Run these commands from the checkout root, then trust the project in Codex to
+load the local config. If you already have a project config, copy the
+`[mcp_servers.serena]` section into it.
+
+```bash
+direnv allow
+cp -i .codex/config.toml.example .codex/config.toml
+codex
+```
+
 ## How the fast compile times work
 
 Bevy is a large dependency, so the template trades a slower first build for much
