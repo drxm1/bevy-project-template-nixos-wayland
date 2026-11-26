@@ -1,12 +1,12 @@
 # Bevy starter template for NixOS + Wayland
 
-A small, reproducible [Bevy](https://bevy.org) project skeleton for game development
-on NixOS under Wayland. Everything needed to build and run is pinned in a Nix flake,
-so there is nothing to install system-wide and a fresh clone builds the same on any
-machine. The default settings are tuned for fast iteration.
+A small Bevy project for game development on NixOS under Wayland. The flake pins
+the Rust toolchain, linker and system libraries. The default settings are tuned
+for fast iteration.
 
-- Bevy **0.18**
-- Self-contained Nix flake dev shell (Rust toolchain, system libraries, linker)
+- Bevy **0.19.1** with the default 2D, 3D, UI and audio features.
+  [Release notes](https://bevy.org/news/bevy-0-19/) · [0.18 to 0.19 migration guide](https://bevy.org/learn/migration-guides/0-18-to-0-19/)
+- Nix dev shell for `x86_64-linux` and `aarch64-linux` (Rust toolchain, system libraries, linker)
 - Fast compile times: Bevy dynamic linking, the `mold` linker, the Cranelift codegen
   backend, generic sharing, and a split optimization profile
 - Cargo workspace: an `app-bevy` binary and a `lib-utils` library, to show how to
@@ -34,8 +34,11 @@ nix develop
 cargo dev          # alias for: cargo run -p app-bevy --features dev
 ```
 
-You should see a window open and `hello ...` lines printed to the terminal every two
-seconds.
+You should see a window open and three greetings in the terminal every two seconds.
+If your shell filters out info logs, run `RUST_LOG=app_bevy=info,lib_utils=info cargo dev`.
+
+`cargo dev` also enables Bevy's debug names, developer tools and asset hot reloading.
+Put game assets in `app-bevy/assets/`.
 
 ## How the fast compile times work
 
@@ -45,17 +48,14 @@ below.
 
 | Technique | Where | What it does |
 |---|---|---|
-| Dynamic linking | `app-bevy` `dev` feature → `cargo dev` | Compiles Bevy into a shared library once; afterwards only your code is relinked. Opt-in, never in release. |
+| Dynamic linking | `app-bevy` `dev` feature → `cargo dev` | Cargo reuses the Bevy shared library when you edit game code. |
 | `mold` linker | `.cargo/config.toml` (`-fuse-ld=mold`) + flake | Links far faster than the default `ld`. Driven by `clang`. |
 | Cranelift backend | `.cargo/config.toml` (`[profile.dev] codegen-backend`) | Generates debug code for *your* crates much faster than LLVM. Dependencies stay on LLVM so the engine still runs fast in dev. Requires nightly. |
 | `-Z share-generics=y` | `.cargo/config.toml` rustflags | Reuses generic instantiations across crates instead of recompiling them. Requires nightly. |
 | Optimization split | `Cargo.toml` profiles | Your code at `opt-level = 1` (quick to recompile); dependencies at `opt-level = 3` (fast at runtime). |
 
-> One subtlety worth knowing: cargo reads extra `rustflags` from a single source
-> (first of `RUSTFLAGS` env, `target.*.rustflags`, `build.rustflags`) and never merges
-> them. That is why the dev shell does **not** export `RUSTFLAGS` and all flags live in
-> `.cargo/config.toml` — otherwise the linker and `share-generics` flags would be
-> silently dropped.
+The dev shell leaves `RUSTFLAGS` unset. Exporting it overrides the linker and
+`share-generics` flags in `.cargo/config.toml`.
 
 ## Dev vs. release
 
@@ -63,12 +63,12 @@ below.
 # Fast iteration — dynamic linking + Cranelift. Binary needs libbevy_dylib at runtime.
 cargo dev
 
-# Shippable build — self-contained, no dynamic linking, LLVM, thin LTO.
+# Release build with Bevy linked into the binary, LLVM and thin LTO.
 cargo build --release -p app-bevy
 ```
 
-Never ship a `--features dev` build: a dynamically linked binary depends on
-`libbevy_dylib.so` and is incompatible with LTO.
+Leave `--features dev` off when shipping the game. The dev binary needs
+`libbevy_dylib.so` at runtime. [Bevy build settings](https://bevy.org/learn/quick-start/getting-started/setup/)
 
 ## Project layout
 
@@ -95,7 +95,7 @@ Nix flake (`rust-bin.fromRustupToolchainFile`), so they cannot drift apart. It p
 To move to a newer nightly, change the date in `rust-toolchain.toml` to one whose
 manifest still contains `rustc-codegen-cranelift-preview`, then run `nix flake update`.
 
-Prefer stable? Set `channel = "stable"` (≥ 1.89, Bevy 0.18's minimum), remove
+Prefer stable? Pin Rust 1.95 or newer in `rust-toolchain.toml`, remove
 `rustc-codegen-cranelift-preview` from the components, and remove the `[unstable]` /
 `codegen-backend` blocks and the `-Z share-generics` flag from `.cargo/config.toml`.
 You keep dynamic linking, `mold`, and the optimization split — the largest wins all
@@ -103,11 +103,12 @@ work on stable.
 
 ## NixOS / Wayland notes
 
-The dev shell adds the libraries Bevy `dlopen`s at runtime (`vulkan-loader`,
+The dev shell adds Bevy's native libraries (`vulkan-loader`,
 `libxkbcommon`, `wayland`, `alsa-lib`, `udev`, plus the X11 libraries for the XWayland
-fallback) to `LD_LIBRARY_PATH`. This is scoped to the shell. winit selects Wayland
-automatically when `WAYLAND_DISPLAY` is set; force a backend with
-`WINIT_UNIX_BACKEND=wayland` (or `=x11`).
+fallback) to `LD_LIBRARY_PATH`. This is scoped to the shell. Bevy's default
+features include both Wayland and X11. winit uses Wayland when `WAYLAND_DISPLAY`
+or `WAYLAND_SOCKET` is set. In a Wayland session with XWayland, you can test the
+X11 backend with `env -u WAYLAND_DISPLAY -u WAYLAND_SOCKET cargo dev`.
 
 Sanity-check the GPU before blaming the app — `vulkan-tools` is in the shell:
 
@@ -121,7 +122,7 @@ vkcube                 # should show a spinning cube
 | `libvulkan.so.1: cannot open shared object file` | loader not found | Provided by the dev shell; make sure you are inside `nix develop`. |
 | "Unable to find a GPU" / no suitable adapter | no usable Vulkan ICD (host-side) | `hardware.graphics.enable = true`; verify with `vulkaninfo`. |
 | `libxkbcommon.so.0` / winit panic on startup | xkbcommon missing | Provided by the dev shell (required even on pure Wayland). |
-| `vulkaninfo` warns about the `dzn`/`lvp` ICD | Mesa's software drivers being skipped | Harmless — the loader falls back to your real GPU driver. |
+| `vulkaninfo` skips an ICD | A driver failed to load | Check that `vulkaninfo --summary` still lists your GPU. If it is missing, check the loader error for that driver. |
 | `cargo run` works but a packaged binary fails | `LD_LIBRARY_PATH` is not carried outside the shell | Ship via a real Nix derivation (e.g. crane/naersk) with the libraries as `buildInputs`, not via the dev env var. |
 
 ## Using this template for your own project

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 pub fn print_hello_world() {
-    println!("Hello from utils crate!");
+    info!("Hello from utils crate!");
 }
 
 pub struct UtilsPlugin;
