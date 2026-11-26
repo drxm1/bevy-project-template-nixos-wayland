@@ -11,7 +11,9 @@ result
 .direnv
 
 # Editor-Specific
-.vscode/
+**/.vscode/*
+!/.vscode/settings.json
+/.codex/config.toml
 .idea/
 *.swp
 *.swo
