@@ -2,16 +2,16 @@
 name = "app-bevy"
 version = { workspace = true }
 edition = { workspace = true }
+rust-version = { workspace = true }
 
 [dependencies]
 bevy = { workspace = true }
-log = { workspace = true }
 lib-utils = { path = "../lib-utils" }
+# Cap log output from dependencies such as wgpu in the final game.
+log = { version = "0.4", features = ["max_level_debug", "release_max_level_warn"] }
 
 [features]
 default = []
-# Opt-in fast dev iteration: compile Bevy as a shared library so only your own code
-# relinks between runs. Enabled by `cargo dev` (alias in .cargo/config.toml).
-# Keep it OUT of release builds — a dynamically linked binary needs libbevy_dylib at
-# runtime and is incompatible with LTO.
-dev = ["bevy/dynamic_linking"]
+# `cargo dev` enables Bevy's debug names, developer tools and asset watcher,
+# and links Bevy as a shared library for faster rebuilds.
+dev = ["bevy/dev", "bevy/dynamic_linking"]

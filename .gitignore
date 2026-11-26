@@ -22,7 +22,6 @@ Thumbs.db
 
 # Bevy
 /assets
-app-bevy/assets
 lib-utils/assets
 
 # Misc
