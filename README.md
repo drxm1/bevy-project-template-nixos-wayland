@@ -77,6 +77,14 @@ below.
 The dev shell leaves `RUSTFLAGS` unset. Exporting it overrides the linker and
 `share-generics` flags in `.cargo/config.toml`.
 
+The pinned nightly uses two frontend threads per rustc process for work such as
+type checking. Cargo's `-j` sets how many build jobs can run at once. Higher
+frontend thread counts can use more memory. To try one frontend thread on Linux,
+append `"-Zunstable-options", "--jobs-frontend=1"` to the Linux `rustflags` array
+in `.cargo/config.toml`. `--jobs-frontend` replaces the old `-Zthreads` flag.
+Changing these flags rebuilds dependencies.
+[Rust compiler team announcement](https://blog.rust-lang.org/2026/11/16/enabling-parallel-frontend-on-nightly/)
+
 ## Dev vs. release
 
 ```bash
@@ -112,8 +120,9 @@ everything; `cargo add <dep> -p lib-utils` adds a dependency to the library crat
 Nix flake (`rust-bin.fromRustupToolchainFile`), so they cannot drift apart. It pins a
 **nightly** because Cranelift and `share-generics` are nightly-only.
 
-To move to a newer nightly, change the date in `rust-toolchain.toml` to one whose
-manifest still contains `rustc-codegen-cranelift-preview`, then run `nix flake update`.
+To move to a newer nightly, pick a date that ships `rustc-codegen-cranelift-preview`
+and change it in `rust-toolchain.toml`. If the pinned overlay doesn't have that
+date yet, run `nix flake update rust-overlay`.
 
 Prefer stable? Pin Rust 1.95 or newer in `rust-toolchain.toml`, remove
 `rustc-codegen-cranelift-preview` from the components, and remove the `[unstable]` /
