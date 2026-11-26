@@ -85,6 +85,34 @@ in `.cargo/config.toml`. `--jobs-frontend` replaces the old `-Zthreads` flag.
 Changing these flags rebuilds dependencies.
 [Rust compiler team announcement](https://blog.rust-lang.org/2026/11/16/enabling-parallel-frontend-on-nightly/)
 
+### Reuse builds across Git worktrees
+
+Create your worktrees first, then use the cached shell in each one.
+
+```bash
+nix develop .#cached
+cargo build --locked -p app-bevy --features dev
+sccache --show-stats
+```
+
+The first build fills the local cache. A fresh worktree can reuse compiled Rust
+libraries while keeping its own `target/`. You can run `cargo dev` in this shell
+as usual. Cargo still links the app and Bevy's shared library in each worktree.
+sccache 0.20.1 can cache libraries with incremental compilation enabled. The
+first edit after a cache hit can take longer while rustc builds its local
+incremental state. [sccache Rust support](https://github.com/mozilla/sccache/blob/v0.20.1/docs/Rust.md)
+
+The cached shell uses `trim-paths` (Cargo 1.101+) to give artifacts and compiler
+diagnostics consistent paths across worktrees. For debugging,
+`app-bevy.trim-paths.json` beside the binary maps paths back to local sources.
+[Cargo path trimming](https://doc.rust-lang.org/nightly/cargo/reference/profiles.html#trim-paths)
+
+The shell sets `SCCACHE_BASEDIRS` from Git's linked worktrees unless you have
+already set it. The sccache server reads those paths at startup. If a worktree
+is missing from `Base directories` in `sccache --show-stats`, enter a fresh
+cached shell and run `sccache --stop-server` once other builds have finished.
+The next build starts the server with the updated paths.
+
 ## Dev vs. release
 
 ```bash
