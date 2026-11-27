@@ -4,8 +4,8 @@ A small Bevy project for game development on NixOS under Wayland. The flake pins
 the Rust toolchain, linker and system libraries. The default settings are tuned
 for fast iteration.
 
-- Bevy **0.19.1** with the default 2D, 3D, UI and audio features.
-  [Release notes](https://bevy.org/news/bevy-0-19/) · [0.18 to 0.19 migration guide](https://bevy.org/learn/migration-guides/0-18-to-0-19/)
+- Bevy **0.20.1** with the default 2D, 3D, UI and audio features.
+  [Release notes](https://bevy.org/news/bevy-0-20/) · [0.19 to 0.20 migration guide](https://bevy.org/learn/migration-guides/0-19-to-0-20/)
 - Nix dev shell for `x86_64-linux` and `aarch64-linux` (Rust toolchain, system libraries, linker)
 - Fast compile times: Bevy dynamic linking, the `mold` linker, the Cranelift codegen
   backend, generic sharing, and a split optimization profile
@@ -37,8 +37,8 @@ cargo dev          # alias for: cargo run -p app-bevy --features dev
 You should see a window open and three greetings in the terminal every two seconds.
 If your shell filters out info logs, run `RUST_LOG=app_bevy=info,lib_utils=info cargo dev`.
 
-`cargo dev` also enables Bevy's debug names, developer tools and asset hot reloading.
-Put game assets in `app-bevy/assets/`.
+`cargo dev` enables Bevy's debug names, developer tools (including the render
+debug overlay) and asset hot reloading. Put game assets in `app-bevy/assets/`.
 
 ## VS Code and Codex
 
@@ -152,7 +152,7 @@ To move to a newer nightly, pick a date that ships `rustc-codegen-cranelift-prev
 and change it in `rust-toolchain.toml`. If the pinned overlay doesn't have that
 date yet, run `nix flake update rust-overlay`.
 
-Prefer stable? Pin Rust 1.95 or newer in `rust-toolchain.toml`, remove
+Prefer stable? Pin Rust 1.97.1 or newer in `rust-toolchain.toml`, remove
 `rustc-codegen-cranelift-preview` from the components, and remove the `[unstable]` /
 `codegen-backend` blocks and the `-Z share-generics` flag from `.cargo/config.toml`.
 You keep dynamic linking, `mold`, and the optimization split — the largest wins all

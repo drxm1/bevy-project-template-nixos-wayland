@@ -1,5 +1,5 @@
 {
-  description = "Bevy 0.19 development environment for NixOS + Wayland";
+  description = "Bevy 0.20 development environment for NixOS + Wayland";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -59,7 +59,7 @@
           shellHook = ''
             export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath runtimeLibs}''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
-            echo "Bevy 0.19 dev environment (NixOS/Wayland) ready."
+            echo "Bevy 0.20 dev environment (NixOS/Wayland) ready."
           '';
         };
 

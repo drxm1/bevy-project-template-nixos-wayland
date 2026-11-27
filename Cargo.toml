@@ -8,11 +8,11 @@ resolver = "3"
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.95"
+rust-version = "1.97.1"
 
 [workspace.dependencies]
 # Bevy's default features include 2D, 3D, UI, audio, Wayland and X11.
-bevy = "0.19"
+bevy = "0.20"
 
 # Keep game code quick to rebuild and optimize Bevy and its dependencies.
 [profile.dev]
